@@ -1,0 +1,22 @@
+
+### get all products
+GET http://localhost:3000/api/products
+
+###
+GET http://localhost:3000/api/products/6a17ebf96161cc39ba944a7c
+
+
+
+### create new product
+POST http://localhost:3000/api/products
+Content-Type: application/json
+
+{  "productname":"cat",
+      "price":199,
+       "kcal":100,
+      "protein":"10",
+      "tag":"New",
+      "desc":"aa",
+      "imageUrl":"bb",
+"isActive":true
+}
