@@ -25,6 +25,12 @@ const productSchema = new mongoose.Schema(
     protein: {
       type: String,
     },
+    carbs: {
+      type: String,
+    },
+    fat: {
+      type: String,
+    },
     tag: {
       type: String,
     },
