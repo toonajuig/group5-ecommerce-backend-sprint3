@@ -1,0 +1,50 @@
+
+###get users
+GET http://localhost:3000/api/users
+
+### get user
+GET http://localhost:3000/api/users/6a19422408c6f705aea70550
+
+### Create newUser
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+   "username":"jane",
+      "email":"jane2@example.com",
+      "password":"pass1234",
+      "tel":"012345678",
+      "role":"user",
+      "address":[
+        {"label":"1234 phuket",
+        "name":"jane",
+        "isDefault":true
+      },
+        {"label":"1234 bangkok",
+        "name":"jip",
+        "isDefault":false
+      }]
+}
+###
+PUT http://localhost:3000/api/users/6a19422408c6f705aea70550
+Content-Type: application/json
+
+{
+   "username":"jane",
+      "email":"jane4@example.com",
+      "password":"pass1234",
+      "tel":"012345678",
+      "role":"user",
+      "address":[
+        {"label":"1234 phuket",
+        "name":"jane",
+        "isDefault":true
+      },
+        {"label":"1234 bangkok",
+        "name":"jip",
+        "isDefault":false
+      }]
+}
+
+### delete user
+DELETE http://localhost:3000/api/users/6a19428b08c6f705aea70552
