@@ -8,12 +8,33 @@ GET http://localhost:3000/api/products/6a17f760a0b9d736a566ce58
 ### create new product
 POST http://localhost:3000/api/products
 Content-Type: application/json
-{  "productname":"Dog",
-      "price":199,
-      "kcal":100,
-      "protein":"10",
-      "tag":"New",
-      "desc":"aa",
-      "imageUrl":"bb",
-"isActive":true
+
+{      "productname":"Omega-3 Fish Oil3",
+    "price":380,
+    "categoryId":"6a1858cee42d6e025143d78a",
+    "quantity":10,
+    "kcal":10,
+    "protein":"0g",
+    "carbs":"30g",
+    "fat":"8g",
+    "tag":"",
+    "desc":"น้ำมันปลาเข้มข้น บำรุงสมอง หัวใจ และลดการอักเสบของกล้ามเนื้อ",
+    "imageUrl":"aaaa",
+    "isActive":false
 }
+
+###update product
+PUT http://localhost:3000/api/products/6a19117e3b9010b699421c82
+Content-Type: application/json
+
+ {"productname": "อกไก่ปั่น ข้าวกล้อง",
+    "price": 199,
+    "isActive":true
+ }
+### delete product
+DELETE http://localhost:3000/api/products/6a19336b9293e984aa1a8903
+
+
+
+
+
