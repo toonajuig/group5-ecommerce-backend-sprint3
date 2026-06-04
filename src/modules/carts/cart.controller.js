@@ -225,7 +225,7 @@ export const editCartItem = async (req, res, next) => {
         session.endSession();
         return res
           .status(404)
-          .json({ success: false, message: "Product nolonger available!" });
+          .json({ success: false, message: "Product no longer available!" });
       }
 
       //Case product instock < target quantity
