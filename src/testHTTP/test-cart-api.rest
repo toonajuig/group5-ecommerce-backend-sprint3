@@ -1,0 +1,8 @@
+POST http://localhost:3000/api/cart
+Content-Type: application/json
+Cookie: accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTFhZjQxZjkzZDJhYWU4YThjNjIyYTMiLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3ODA1NDg4NDUsImV4cCI6MTc4MDU1MjQ0NX0.kHXNE5T3hfuARCHZD1OLQ4ebyKaQFcK92upIGVNKdgo;
+
+{
+  "productId": "6a19117e3b9010b699421c82",
+  "quantity": 2
+}
