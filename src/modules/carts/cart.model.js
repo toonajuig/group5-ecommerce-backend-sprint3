@@ -22,6 +22,10 @@ const classSchema = new mongoose.Schema(
           default: 1,
           min: [1, "Quantity should at least 1"],
         },
+
+        price: { type: Number, required: true },
+        name: { type: String },
+        imageUrl: { type: String },
       },
     ],
   },
