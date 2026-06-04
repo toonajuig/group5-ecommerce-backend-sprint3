@@ -9,23 +9,24 @@ export const addToCart = async (req, res, next) => {
     return res.status(400).json({ success: false, message: "Product ID is required!" });
   }
 
+  if (!Number.isInteger(quantity) || quantity < 1) {
+  return res.status(400).json({
+    success: false,
+    message: "Quantity must be a positive integer",
+  });
+}
+
   try {
     const userId = req.user?.userId;
 
     // 1. หา product และเช็คสต็อก
     const product = await Product.findById(productId);
-
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found!" });
     }
 
-    if (product.quantity < quantity) {
-      return res.status(400).json({ success: false, message: "Not enough stock!" });
-    }
-
-    // 2. หา cart ของ user นี้ ถ้าไม่มีก็สร้างใหม่
+// 2. หา cart ของ user นี้ ถ้าไม่มีก็สร้างใหม่
     let cart = await Cart.findOne({ userId });
-
     if (!cart) {
       cart = new Cart({ userId, items: [] });
     }
@@ -34,6 +35,11 @@ export const addToCart = async (req, res, next) => {
     const existingItem = cart.items.find(
       (item) => item.productId.toString() === productId
     );
+
+    const currentInCart = existingItem ? existingItem.quantity : 0;
+    if (product.quantity < currentInCart + quantity) {
+      return res.status(400).json({ success: false, message: "Not enough stock!" });
+    }
 
     if (existingItem) {
       existingItem.quantity += quantity;
