@@ -1,18 +1,17 @@
 import { Router } from "express";
-import { authUser } from "../middleware/authUser.js"; // protect ด้วย JWT
-import { addToCart , removeCartItem , updateCartQuantity , removeCartQuantity } from "../modules/carts/cart.controller.js";
 
+import { authUser } from "../middleware/authUser.js";
 
 export const router = Router();
 
-router.use(authUser); 
+import {
+  addToCart,
+  getCart,
+  clearCart,
+  editCartItem,
+} from "../modules/carts/cart.controller.js";
 
-// router.get("/",       getCart);  
-
-router.post("/",      addToCart);  
-
-router.put("/increase/:productId", updateCartQuantity); 
-
-router.put("/decrease/:productId", removeCartQuantity); 
-
-router.delete("/",    removeCartItem); 
+router.post("/", authUser, addToCart);
+router.get("/", authUser, getCart);
+router.put("/", authUser, editCartItem);
+router.delete("/", authUser, clearCart);

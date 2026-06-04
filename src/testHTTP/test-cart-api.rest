@@ -1,38 +1,41 @@
-POST http://localhost:3000/api/cart
+### Login to get token
+POST http://localhost:3000/api/users/login
 Content-Type: application/json
-Cookie: <YOUR_ACCESS_TOKEN>
-{
-  "productId": "6a19117e3b9010b699421c82",
-  "quantity": 3
-}
-
-###
-
-POST http://localhost:3000/api/cart
-Content-Type: application/json
-Cookie: <YOUR_ACCESS_TOKEN>
 
 {
-  "productId": "6a1914e63b9010b699421c84",
-  "quantity": 1
+    "email": "user7.test@example.com",
+    "password": "pass1234"
 }
-###
-DELETE http://localhost:3000/api/cart
+
+### User log out -> clear token
+POST http://localhost:3000/api/users/logout
 Content-Type: application/json
-Cookie: <YOUR_ACCESS_TOKEN>
+
 {
-  "productId": "6a19167f3b9010b699421c87"
-  
+    "email": "user7.test@example.com",
+    "password": "pass1234"
 }
-###
-PUT http://localhost:3000/api/cart/increase/6a1914e63b9010b699421c84
+
+### Add product to shoping cart (Requires Login)
+POST http://localhost:3000/api/carts
 Content-Type: application/json
-Cookie: <YOUR_ACCESS_TOKEN>
-###
-PUT http://localhost:3000/api/cart/decrease/6a1914e63b9010b699421c84
+
+{
+    "productId": "6a1914e63b9010b699421c84",
+    "quantity": 1
+}
+
+### Get cart details
+GET http://localhost:3000/api/carts
+
+### Edit cart item quantity
+PUT http://localhost:3000/api/carts
 Content-Type: application/json
-Cookie: <YOUR_ACCESS_TOKEN>
 
-# Cookie: <YOUR_ACCESS_TOKEN>
+{
+    "productId": "6a1914e63b9010b699421c84",
+    "quantity": 10
+}
 
-
+### Clear all items from cart
+DELETE http://localhost:3000/api/carts
