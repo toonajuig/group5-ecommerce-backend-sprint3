@@ -10,5 +10,9 @@ export const router = Router();
 router.use("/products", productsRouter);
 router.use("/categories", categoriesRouter);
 router.use("/users", userRouter);
+router.use("/cart", cartRouter);
+
+
+
 router.use("/orders",orderRouter);
 router.use("/admin", adminRouter);

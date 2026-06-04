@@ -1,0 +1,7 @@
+POST http://localhost:3000/api/cart
+Content-Type: application/json
+Cookie: <YOUR_ACCESS_TOKEN>
+{
+  "productId": "6a19117e3b9010b699421c82",
+  "quantity": 2
+}
