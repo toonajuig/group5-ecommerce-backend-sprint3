@@ -5,7 +5,7 @@ export const corsOptions = {
         "http://localhost:5175",
         "https://group5-ecommerce-frontend-sprint2.vercel.app",
         // ong's fe
-        "https://group5-ecommerce-backend-sprint3-h2nr.onrender.com/api",
+        "https://group5-ecommerce-sprint2.vercel.app",
     ], //This are frontend domain.
     credentials: true, //Allow cookies to be send
 };
