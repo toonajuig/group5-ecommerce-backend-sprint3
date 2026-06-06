@@ -16,7 +16,7 @@ const getGlobalUnitsInCarts = async (productId) => {
     { $match: { "items.productId": new mongoose.Types.ObjectId(productId) } },
     { $group: { _id: null, totalHeld: { $sum: "$items.quantity" } } },
   ]);
-  return result.length > 0 ? result.totalHeld : 0;
+  return result.length > 0 ? result[0].totalHeld : 0;
 };
 
 // =========================================================================
@@ -359,7 +359,6 @@ export const editCartItem = async (req, res, next) => {
   }
 };
 
-// 6. DROP SINGLE ITEM COMPLETELY
 // 6. DROP SINGLE ITEM COMPLETELY
 export const removeCartItem = async (req, res, next) => {
   const { productId } = req.body;

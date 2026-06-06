@@ -21,11 +21,13 @@ router.post("/", authUser, addToCart);
 // 3. Update Cart Item Quantity (Delta adjustments)
 router.patch("/quantity/:productId", authUser, updateCartQuantity);
 
-// 4. Edit Cart Item Quantity (Direct Override) - Fixed path to match Test #4
+// 4. Edit Cart Item Quantity (Direct Override)
+router.put("/", authUser, editCartItem);
 router.post("/edit", authUser, editCartItem);
 
-// 5. Remove Single Item From Cart - Added path to match Test #5
+// 5. Remove Single Item From Cart
 router.post("/remove", authUser, removeCartItem);
 
-// 6. Clear Entire Cart - Changed to POST to match your Test #6 script
+// 6. Clear Entire Cart
+router.delete("/", authUser, clearCart);
 router.post("/clear", authUser, clearCart);

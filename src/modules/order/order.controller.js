@@ -18,7 +18,7 @@ const getGlobalUnitsInCarts = async (productId) => {
     { $match: { "items.productId": new mongoose.Types.ObjectId(productId) } },
     { $group: { _id: null, totalHeld: { $sum: "$items.quantity" } } },
   ]);
-  return result.length > 0 ? result.totalHeld : 0;
+  return result.length > 0 ? result[0].totalHeld : 0;
 };
 
 // =========================================================================
@@ -27,7 +27,7 @@ const getGlobalUnitsInCarts = async (productId) => {
 
 // 1. CREATE INITIAL PENDING ORDER (Pulls Default Profile Address automatically)
 export const createOrder = async (req, res, next) => {
-  const { paymentMethod } = req.body || {};
+  const { addressId, paymentMethod } = req.body || {};
 
   if (!paymentMethod) {
     return res
@@ -52,11 +52,17 @@ export const createOrder = async (req, res, next) => {
       });
     }
 
-    // 2. Scan the address array to find the profile set to isDefault: true
-    // Fallback: If no address is explicitly marked default, pick the very first address in their array.
-    const chosenAddress =
-      userProfile.address.find((addr) => addr.isDefault === true) ||
-      userProfile.address[0];
+    // 2. Use addressId if provided, otherwise fall back to default or first address
+    const chosenAddress = addressId
+      ? userProfile.address.id(addressId)
+      : userProfile.address.find((addr) => addr.isDefault === true) ||
+        userProfile.address[0];
+
+    if (!chosenAddress) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Address not found!" });
+    }
 
     // 3. Fetch user's cart and populate raw catalog information
     const cart = await Cart.findOne({ userId }).populate("items.productId");

@@ -5,14 +5,15 @@ import {
   cancelOrder,
   getAllOrders,
 } from "../modules/order/order.controller.js";
-import { authUser } from "../middleware/authUser.js"; // Adjust path to your file location
+import { authUser, adminOnly } from "../middleware/authUser.js";
 
 export const router = Router();
 
-// User Route
+// User Routes
+router.post("/", authUser, createOrder);
 router.post("/checkout", authUser, createOrder);
 
-// Admin / System Status Updates (Usually protected by an authAdmin middleware too)
-router.get("/all", authUser, getAllOrders);
-router.patch("/:orderId/pay", authUser, markOrderAsPaid);
+// Admin Routes
+router.get("/all", authUser, adminOnly, getAllOrders);
+router.patch("/:orderId/pay", authUser, adminOnly, markOrderAsPaid);
 router.patch("/:orderId/cancel", authUser, cancelOrder);
