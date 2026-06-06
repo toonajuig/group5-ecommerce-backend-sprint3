@@ -183,6 +183,7 @@ export const userLogin = async (req, res, next) => {
                 _id: foundUser._id,
                 username: foundUser.username,
                 email: foundUser.email,
+                tel: foundUser.tel,
                 role: foundUser.role,
             },
         });
@@ -214,9 +215,63 @@ export const authenUser = async (req, res, next) => {
                 _id: user._id,
                 username: user.username,
                 email: user.email,
+                tel: user.tel,
                 role: user.role,
             },
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateMyProfile = async (req, res, next) => {
+    const { username, tel } = req.body || {};
+    try {
+        const userId = req.user?.userId;
+        const foundUser = await User.findById(userId);
+        if (!foundUser) {
+            return res.status(404).json({ success: false, message: "User not found!" });
+        }
+        if (username !== undefined) foundUser.username = username;
+        if (tel !== undefined) foundUser.tel = tel;
+        const savedUser = await foundUser.save();
+        return res.status(200).json({
+            success: true,
+            message: "Profile updated successfully!",
+            data: {
+                _id: savedUser._id,
+                username: savedUser.username,
+                email: savedUser.email,
+                tel: savedUser.tel,
+                role: savedUser.role,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const changeMyPassword = async (req, res, next) => {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({
+            success: false,
+            message: "Current password and new password are required!",
+        });
+    }
+    try {
+        const userId = req.user?.userId;
+        const foundUser = await User.findById(userId).select("+password");
+        if (!foundUser) {
+            return res.status(404).json({ success: false, message: "User not found!" });
+        }
+        const isMatch = await bcrypt.compare(currentPassword, foundUser.password);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: "รหัสผ่านปัจจุบันไม่ถูกต้อง" });
+        }
+        foundUser.password = newPassword;
+        await foundUser.save();
+        return res.status(200).json({ success: true, message: "เปลี่ยนรหัสผ่านสำเร็จ" });
     } catch (error) {
         next(error);
     }
