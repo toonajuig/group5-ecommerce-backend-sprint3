@@ -17,6 +17,8 @@ import {
   addUserAddress,
   updateUserAddress,
   deleteUserAddress,
+  updateMyProfile,
+  changeMyPassword,
 } from "../modules/user/user.controller.js";
 
 router.post("/login", userLogin);
@@ -27,6 +29,8 @@ router.post("/me/addresses", authUser, addUserAddress);
 router.put("/me/addresses/:addressId", authUser, updateUserAddress);
 router.delete("/me/addresses/:addressId", authUser, deleteUserAddress);
 router.post("/", createUser);
+router.put("/me", authUser, updateMyProfile);
+router.put("/me/password", authUser, changeMyPassword);
 router.get("/", authUser, adminOnly, getUsers);
 router.get("/:id", authUser, adminOnly, getUser);
 router.put("/:id", authUser, adminOnly, updateUser);
