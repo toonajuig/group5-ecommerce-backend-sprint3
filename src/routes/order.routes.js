@@ -11,7 +11,6 @@ export const router = Router();
 
 // User Routes
 router.post("/", authUser, createOrder);
-router.post("/checkout", authUser, createOrder);
 
 // Admin Routes
 router.get("/all", authUser, adminOnly, getAllOrders);
