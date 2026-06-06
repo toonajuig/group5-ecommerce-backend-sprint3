@@ -13,7 +13,7 @@ export const orderItemSchema = new mongoose.Schema({
   price: {
     type: Number,
     required: true,
-    min: [0, "Price cannot be nagative"],
+    min: [0, "Price cannot be negative"],
   },
   quantity: {
     type: Number,
