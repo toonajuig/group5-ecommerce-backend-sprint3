@@ -32,7 +32,7 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: {
-        values: ["Cash on Delivery", "Bank transfer"],
+        values: ["Cash on delivery", "Bank transfer"],
       },
     },
     status: {
@@ -40,7 +40,7 @@ const orderSchema = new mongoose.Schema(
       required: true,
       default: "Pending",
       enum: {
-        values: ["Pending", "Paid", "On deliverly", "Delivered", "Cancelled"],
+        values: ["Pending", "Paid", "On delivery", "Delivered", "Cancelled"],
       },
     },
   },
