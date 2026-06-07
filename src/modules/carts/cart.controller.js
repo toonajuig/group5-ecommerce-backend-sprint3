@@ -1,27 +1,7 @@
 import mongoose from "mongoose";
 import { Cart } from "./cart.model.js";
 import { Product } from "../products/product.model.js";
-
-// =========================================================================
-// HELPER FUNCTIONS
-// =========================================================================
-
-/**
- * Calculates the total quantity of a specific product currently held across ALL user carts.
- * This prevents overselling when inventory isn't deducted until payment.
- */
-const getGlobalUnitsInCarts = async (productId) => {
-  const result = await Cart.aggregate([
-    { $unwind: "$items" },
-    { $match: { "items.productId": new mongoose.Types.ObjectId(productId) } },
-    { $group: { _id: null, totalHeld: { $sum: "$items.quantity" } } },
-  ]);
-  return result.length > 0 ? result[0].totalHeld : 0;
-};
-
-// =========================================================================
-// CONTROLLERS
-// =========================================================================
+import { getGlobalUnitsReserved } from "../../utils/stock.utils.js";
 
 // 1. ADD ITEM TO CART
 export const addToCart = async (req, res, next) => {
@@ -60,7 +40,7 @@ export const addToCart = async (req, res, next) => {
     const currentInCart = existingItem ? existingItem.quantity : 0;
 
     // Global Stock Allocation Logic
-    const globalUnitsHeld = await getGlobalUnitsInCarts(productId);
+    const globalUnitsHeld = await getGlobalUnitsReserved(productId);
     const totalReservedByOthers = globalUnitsHeld - currentInCart;
     const realAvailableStock = product.quantity - totalReservedByOthers;
 
@@ -164,7 +144,7 @@ export const updateCartQuantity = async (req, res, next) => {
     // Global Stock Allocation Logic for Additions
     if (quantity > 0) {
       const currentInCart = itemIndex > -1 ? cart.items[itemIndex].quantity : 0;
-      const globalUnitsHeld = await getGlobalUnitsInCarts(productId);
+      const globalUnitsHeld = await getGlobalUnitsReserved(productId);
 
       const totalReservedByOthers = globalUnitsHeld - currentInCart;
       const realAvailableStock = product.quantity - totalReservedByOthers;
@@ -313,7 +293,7 @@ export const editCartItem = async (req, res, next) => {
     // Global Stock Allocation Logic for Increases
     if (targetQuantity > currentInCart) {
       const quantityRequestedDifference = targetQuantity - currentInCart;
-      const globalUnitsHeld = await getGlobalUnitsInCarts(productId);
+      const globalUnitsHeld = await getGlobalUnitsReserved(productId);
 
       const totalReservedByOthers = globalUnitsHeld - currentInCart;
       const realAvailableStock = product.quantity - totalReservedByOthers;
