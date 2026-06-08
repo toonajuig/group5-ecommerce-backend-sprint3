@@ -9,11 +9,14 @@ import { authUser, adminOnly } from "../middleware/authUser.js";
 
 export const router = Router();
 
-// User Routes
+// 1. User Checkout Route
 router.post("/", authUser, createOrder);
 
-// Admin / System Status Updates (Usually protected by an authAdmin middleware too)
+// 2. Admin Get All Orders (Keep this ABOVE the /:orderId parameter route)
 router.get("/all", authUser, getAllOrders);
-router.patch("/:orderId/cancel", authUser, getOrder);
-//Edit order details & change order status
+
+// 3. Admin/User Get Single Order Details (Fixed path mapping)
+router.get("/:orderId", authUser, getOrder);
+
+// 4. Unified Update & Status Handler (Handles Paid, Canceled, and address adjustments)
 router.put("/:orderId", authUser, updateOrder);
