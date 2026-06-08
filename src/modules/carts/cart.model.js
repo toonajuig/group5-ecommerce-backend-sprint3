@@ -32,4 +32,7 @@ const cartSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+//Set cart expire (empty cart) if user logout or token expire with no cart checkout to make order
+cartSchema.index({ updateAt: 1 }, { expireAfterSeconds: 86400 }); //86400 = 1 day
+
 export const Cart = mongoose.model("Cart", cartSchema);

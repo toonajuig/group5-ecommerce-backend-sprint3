@@ -5,6 +5,7 @@
 # =========================================================================
 
 ### Login to get token
+# @name login
 POST {{baseUrl}}/users/login
 Content-Type: application/json
 
@@ -71,6 +72,7 @@ POST {{baseUrl}}/carts/clear
 # =========================================================================
 
 ### 7. Create New Order From Cart Details (Purges Cart and sets Order to Pending)
+# @name checkoutRequest
 POST {{baseUrl}}/orders/checkout
 Content-Type: application/json
 
@@ -78,30 +80,25 @@ Content-Type: application/json
   "paymentMethod": "Bank transfer"
 }
 
-### 10. Get All System Orders (Admin view - sorted newest first)
+### Grab the dynamic order ID generated from Test #7 above automatically
+@realOrderId = {{checkoutRequest.response.body.data._id}}
+
+### 8. Get All System Orders (Admin view - sorted newest first)
 GET {{baseUrl}}/orders/all
 
-### Update order detail & change order status to paid (update products stock)
-PUT {{baseUrl}}/orders/6a24113a3475e908ecc5e09b
+### 9. Update order detail & change order status to Paid (Deducts product stock)
+PUT {{baseUrl}}/orders/{{realOrderId}}
 Content-Type: application/json
 
 {
-  "status": "Paid"
+  "status": "Paid",
 }
 
-### 9. Admin changes status to On Delivery or Delivered (No stock actions taken)
-PUT {{baseUrl}}/orders/65cd9876543210fedcba8765
+### 10. Admin cancels order (Returns database stock to shelf because status was Paid)
+# NOTE: "Canceled" must be spelled with one 'L' to match your updated schema enum validation!
+PUT {{baseUrl}}/orders/{{realOrderId}}
 Content-Type: application/json
 
 {
-  "status": "On delivery"
+  "status": "Canceled"
 }
-
-### 10. Admin cancels order (Restocks database inventory because status was Paid)
-PUT {{baseUrl}}/orders/"65cd9876543210fedcba8765"
-Content-Type: application/json
-
-{
-  "status": "Cancelled"
-}
-

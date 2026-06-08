@@ -40,7 +40,7 @@ const orderSchema = new mongoose.Schema(
       required: true,
       default: "Pending",
       enum: {
-        values: ["Pending", "Paid", "On delivery", "Delivered", "Cancelled"],
+        values: ["Pending", "Paid", "Canceled"],
       },
     },
   },

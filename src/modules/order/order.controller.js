@@ -119,81 +119,6 @@ export const createOrder = async (req, res, next) => {
   }
 };
 
-// 3. CANCEL ORDER (Restocks Inventory ONLY if it was already Paid)
-export const cancelOrder = async (req, res, next) => {
-  const { orderId } = req.params;
-
-  if (!mongoose.Types.ObjectId.isValid(orderId)) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Invalid Order ID format!" });
-  }
-
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const order = await Order.findById(orderId).session(session);
-    if (!order) {
-      await session.abortTransaction();
-      session.endSession();
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found!" });
-    }
-
-    const isAdmin = req.user.role === "admin";
-    if (!isAdmin && order.userId.toString() !== req.user.userId) {
-      await session.abortTransaction();
-      session.endSession();
-      return res
-        .status(403)
-        .json({ success: false, message: "Access denied!" });
-    }
-
-    if (order.status === "Cancelled") {
-      await session.abortTransaction();
-      session.endSession();
-      return res
-        .status(400)
-        .json({ success: false, message: "Order is already cancelled!" });
-    }
-
-    const previousStatus = order.status;
-
-    if (previousStatus === "Paid") {
-      for (const item of order.items) {
-        await Product.findByIdAndUpdate(
-          item.productId,
-          { $inc: { quantity: item.quantity } },
-          { session },
-        );
-      }
-    }
-
-    order.status = "Cancelled";
-    await order.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.status(200).json({
-      success: true,
-      message:
-        previousStatus === "Paid"
-          ? "Order cancelled successfully! Stock numbers have been returned to the catalog."
-          : "Order cancelled successfully! (No stock adjustments were needed since order was not paid).",
-      data: order,
-    });
-  } catch (error) {
-    if (session.inTransaction()) {
-      await session.abortTransaction();
-    }
-    session.endSession();
-    next(error);
-  }
-};
-
 // 4. GET ALL ORDERS (Admin)
 export const getAllOrders = async (req, res, next) => {
   try {
@@ -262,13 +187,10 @@ export const updateOrder = async (req, res, next) => {
       .json({ success: false, message: "Invalid Order ID format!" });
   }
 
-  // Start a transaction session because if the status transitions to "Paid" or "Cancelled",
-  // we are writing to both Orders and Products collections simultaneously.
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    // 1. Fetch the order document inside the protected transaction session
     const order = await Order.findById(orderId).session(session);
     if (!order) {
       await session.abortTransaction();
@@ -280,21 +202,21 @@ export const updateOrder = async (req, res, next) => {
 
     const previousStatus = order.status;
 
-    // 2. Apply general updates if they are passed in the request body
+    // Apply basic metadata updates safely
     if (deliveryAddress) order.deliveryAddress = deliveryAddress;
     if (paymentMethod) order.paymentMethod = paymentMethod;
     if (shippingFee !== undefined) {
       order.shippingFee = shippingFee;
-      order.total = order.subtotal + shippingFee; // Auto-recalculate total invoice
+      order.total = order.subtotal + shippingFee;
     }
 
-    // 3. Evaluate Status Transitions & Core Business Logic Rules
+    // Process state alterations cleanly
     if (status && status !== previousStatus) {
-      // RULE A: Transitioning from Pending -> Paid (Deduct stock from database)
+      // RULE 1: Transitioning from Pending -> Paid (Deduct physical catalog stock)
       if (status === "Paid") {
         for (const item of order.items) {
           const updatedProduct = await Product.findOneAndUpdate(
-            { _id: item.productId, quantity: { $gte: item.quantity } }, // Only deduct if enough physical stock exists
+            { _id: item.productId, quantity: { $gte: item.quantity } },
             { $inc: { quantity: -item.quantity } },
             { returnDocument: "after", session },
           );
@@ -304,46 +226,56 @@ export const updateOrder = async (req, res, next) => {
             session.endSession();
             return res.status(400).json({
               success: false,
-              message: `Inventory deduction failed! Not enough database stock left for product: '${item.productname}'.`,
+              message: `Inventory deduction failed! Not enough stock left for product: '${item.productname}'.`,
             });
           }
         }
       }
 
-      // RULE B: Transitioning to Cancelled (Only restock shelves if the order was PREVIOUSLY paid)
-      if (status === "Cancelled" && previousStatus === "Paid") {
+      // RULE 2: Transitioning from Paid -> Canceled (Return stock to the shelves)
+      if (status === "Canceled" && previousStatus === "Paid") {
         for (const item of order.items) {
           await Product.findByIdAndUpdate(
             item.productId,
-            { $inc: { quantity: item.quantity } }, // Add items back onto database shelves
+            { $inc: { quantity: item.quantity } },
             { session },
           );
         }
       }
 
-      // RULE C: Block illegal rollbacks (Prevent changing a Paid order back to Pending)
-      if (previousStatus === "Paid" && status === "Pending") {
+      // RULE 3: Transitioning from Pending -> Canceled
+      // No database stock adjustments are required. Flipping this status text automatically
+      // excludes the order from the getGlobalUnitsReserved query, un-freezing the stock!
+      if (status === "Canceled" && previousStatus === "Pending") {
+        console.log(
+          `Order ${orderId} canceled from Pending status. Stock un-frozen automatically.`,
+        );
+      }
+
+      // Guard: Block moving a Paid or Canceled order back to Pending
+      if (
+        (previousStatus === "Paid" || previousStatus === "Canceled") &&
+        status === "Pending"
+      ) {
         await session.abortTransaction();
         session.endSession();
         return res.status(400).json({
           success: false,
-          message:
-            "Illegal state transition! A Paid order cannot be reverted back to Pending status.",
+          message: `Illegal state transition! Cannot revert an order back to Pending from '${previousStatus}'.`,
         });
       }
 
-      // If all rules pass, update the status property
       order.status = status;
     }
 
-    // 4. Save mutations and commit transaction atomically
     await order.save({ session });
     await session.commitTransaction();
     session.endSession();
 
     return res.status(200).json({
       success: true,
-      message: "Order details updated successfully.",
+      message:
+        "Order updated successfully in accordance with sprint stock rules.",
       data: order,
     });
   } catch (error) {
