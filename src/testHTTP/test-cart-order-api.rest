@@ -78,12 +78,30 @@ Content-Type: application/json
   "paymentMethod": "Bank transfer"
 }
 
-### 8. Mark Order as Paid (Admin Operation -> Deducts Real Database Stock Numbers)
-PATCH {{baseUrl}}/orders/6a24125f3475e908ecc5e0b1/pay
-
-### 9. Cancel Order (Admin/User Operation -> Restocks Inventory back to shelf if it was Paid)
-PATCH {{baseUrl}}/orders/65cd9876543210fedcba8765/cancel
-
 ### 10. Get All System Orders (Admin view - sorted newest first)
 GET {{baseUrl}}/orders/all
+
+### Update order detail & change order status to paid (update products stock)
+PUT {{baseUrl}}/orders/6a24113a3475e908ecc5e09b
+Content-Type: application/json
+
+{
+  "status": "Paid"
+}
+
+### 9. Admin changes status to On Delivery or Delivered (No stock actions taken)
+PUT {{baseUrl}}/orders/65cd9876543210fedcba8765
+Content-Type: application/json
+
+{
+  "status": "On delivery"
+}
+
+### 10. Admin cancels order (Restocks database inventory because status was Paid)
+PUT {{baseUrl}}/orders/"65cd9876543210fedcba8765"
+Content-Type: application/json
+
+{
+  "status": "Cancelled"
+}
 

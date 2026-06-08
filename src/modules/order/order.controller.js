@@ -3,23 +3,7 @@ import { Order } from "./order.model.js";
 import { Cart } from "../carts/cart.model.js";
 import { Product } from "../products/product.model.js";
 import { User } from "../user/user.model.js";
-
-// =========================================================================
-// HELPER FUNCTIONS
-// =========================================================================
-
-const getGlobalUnitsInCarts = async (productId) => {
-  const result = await Cart.aggregate([
-    { $unwind: "$items" },
-    { $match: { "items.productId": new mongoose.Types.ObjectId(productId) } },
-    { $group: { _id: null, totalHeld: { $sum: "$items.quantity" } } },
-  ]);
-  return result.length > 0 ? result[0].totalHeld : 0;
-};
-
-// =========================================================================
-// CONTROLLERS
-// =========================================================================
+import { getGlobalUnitsReserved } from "../../utils/stock.utils.js";
 
 // 1. CREATE INITIAL PENDING ORDER
 export const createOrder = async (req, res, next) => {
@@ -79,7 +63,7 @@ export const createOrder = async (req, res, next) => {
         });
       }
 
-      const globalUnitsHeld = await getGlobalUnitsInCarts(product._id);
+      const globalUnitsHeld = await getGlobalUnitsReserved(product._id);
       const totalReservedByOthers = globalUnitsHeld - item.quantity;
       const realAvailableStock = product.quantity - totalReservedByOthers;
 
@@ -135,76 +119,7 @@ export const createOrder = async (req, res, next) => {
   }
 };
 
-// 2. MARK ORDER AS PAID (Admin — deducts stock)
-export const markOrderAsPaid = async (req, res, next) => {
-  const { orderId } = req.params;
-
-  if (!mongoose.Types.ObjectId.isValid(orderId)) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Invalid Order ID format!" });
-  }
-
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const order = await Order.findById(orderId).session(session);
-    if (!order) {
-      await session.abortTransaction();
-      session.endSession();
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found!" });
-    }
-
-    if (order.status === "Paid") {
-      await session.abortTransaction();
-      session.endSession();
-      return res
-        .status(400)
-        .json({ success: false, message: "Order is already marked as Paid!" });
-    }
-
-    for (const item of order.items) {
-      const updatedProduct = await Product.findOneAndUpdate(
-        { _id: item.productId, quantity: { $gte: item.quantity } },
-        { $inc: { quantity: -item.quantity } },
-        { returnDocument: "after", session },
-      );
-
-      if (!updatedProduct) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({
-          success: false,
-          message: `Deduction failed! Not enough real inventory left for product: '${item.productname}'.`,
-        });
-      }
-    }
-
-    order.status = "Paid";
-    await order.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.status(200).json({
-      success: true,
-      message:
-        "Payment confirmed successfully! Product stock has been officially deducted.",
-      data: order,
-    });
-  } catch (error) {
-    if (session.inTransaction()) {
-      await session.abortTransaction();
-    }
-    session.endSession();
-    next(error);
-  }
-};
-
-// 3. CANCEL ORDER (restocks only if already Paid)
+// 3. CANCEL ORDER (Restocks Inventory ONLY if it was already Paid)
 export const cancelOrder = async (req, res, next) => {
   const { orderId } = req.params;
 
@@ -300,6 +215,142 @@ export const getAllOrders = async (req, res, next) => {
       data: orders,
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+//Get one order (admin/user)
+export const getOrder = async (req, res, next) => {
+  const { orderId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(orderID)) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid Order ID format!" });
+  }
+
+  try {
+    const order = await Order.findById(orderId).populate(
+      "userID",
+      "username email tel",
+    );
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found!" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Order details fetched successfully!",
+      data: order,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+//5. Update oder datails & change status (admin only)
+export const updateOrder = async (req, res, next) => {
+  const { orderId } = req.params;
+  const { status, deliveryAddress, shippingFee, paymentMethod } =
+    req.body || {};
+
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid Order ID format!" });
+  }
+
+  // Start a transaction session because if the status transitions to "Paid" or "Cancelled",
+  // we are writing to both Orders and Products collections simultaneously.
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // 1. Fetch the order document inside the protected transaction session
+    const order = await Order.findById(orderId).session(session);
+    if (!order) {
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found!" });
+    }
+
+    const previousStatus = order.status;
+
+    // 2. Apply general updates if they are passed in the request body
+    if (deliveryAddress) order.deliveryAddress = deliveryAddress;
+    if (paymentMethod) order.paymentMethod = paymentMethod;
+    if (shippingFee !== undefined) {
+      order.shippingFee = shippingFee;
+      order.total = order.subtotal + shippingFee; // Auto-recalculate total invoice
+    }
+
+    // 3. Evaluate Status Transitions & Core Business Logic Rules
+    if (status && status !== previousStatus) {
+      // RULE A: Transitioning from Pending -> Paid (Deduct stock from database)
+      if (status === "Paid") {
+        for (const item of order.items) {
+          const updatedProduct = await Product.findOneAndUpdate(
+            { _id: item.productId, quantity: { $gte: item.quantity } }, // Only deduct if enough physical stock exists
+            { $inc: { quantity: -item.quantity } },
+            { returnDocument: "after", session },
+          );
+
+          if (!updatedProduct) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({
+              success: false,
+              message: `Inventory deduction failed! Not enough database stock left for product: '${item.productname}'.`,
+            });
+          }
+        }
+      }
+
+      // RULE B: Transitioning to Cancelled (Only restock shelves if the order was PREVIOUSLY paid)
+      if (status === "Cancelled" && previousStatus === "Paid") {
+        for (const item of order.items) {
+          await Product.findByIdAndUpdate(
+            item.productId,
+            { $inc: { quantity: item.quantity } }, // Add items back onto database shelves
+            { session },
+          );
+        }
+      }
+
+      // RULE C: Block illegal rollbacks (Prevent changing a Paid order back to Pending)
+      if (previousStatus === "Paid" && status === "Pending") {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message:
+            "Illegal state transition! A Paid order cannot be reverted back to Pending status.",
+        });
+      }
+
+      // If all rules pass, update the status property
+      order.status = status;
+    }
+
+    // 4. Save mutations and commit transaction atomically
+    await order.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      success: true,
+      message: "Order details updated successfully.",
+      data: order,
+    });
+  } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+    session.endSession();
     next(error);
   }
 };
