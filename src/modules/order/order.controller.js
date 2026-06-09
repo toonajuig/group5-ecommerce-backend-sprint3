@@ -247,9 +247,7 @@ export const updateOrder = async (req, res, next) => {
       // No database stock adjustments are required. Flipping this status text automatically
       // excludes the order from the getGlobalUnitsReserved query, un-freezing the stock!
       if (status === "Canceled" && previousStatus === "Pending") {
-        console.log(
-          `Order ${orderId} canceled from Pending status. Stock un-frozen automatically.`,
-        );
+        // no stock adjustment needed; un-frozen automatically by status exclusion in reserved query
       }
 
       // Guard: Block moving a Paid or Canceled order back to Pending

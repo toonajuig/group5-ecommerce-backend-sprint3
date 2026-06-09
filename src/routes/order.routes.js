@@ -10,7 +10,7 @@ import { authUser, adminOnly } from "../middleware/authUser.js";
 export const router = Router();
 
 // 1. User Checkout Route
-router.post("/", authUser, createOrder);
+router.post("/checkout", authUser, createOrder);
 
 // 2. Admin Get All Orders (Keep this ABOVE the /:orderId parameter route)
 router.get("/all", authUser, getAllOrders);
