@@ -119,6 +119,21 @@ export const createOrder = async (req, res, next) => {
   }
 };
 
+// 2. GET CURRENT USER'S ORDERS
+export const getMyOrders = async (req, res, next) => {
+  try {
+    const userId = req.user?.userId;
+    const orders = await Order.find({ userId }).sort({ createdAt: -1 });
+    return res.status(200).json({
+      success: true,
+      message: "Your orders fetched successfully.",
+      data: orders,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // 4. GET ALL ORDERS (Admin)
 export const getAllOrders = async (req, res, next) => {
   try {
@@ -148,7 +163,7 @@ export const getAllOrders = async (req, res, next) => {
 export const getOrder = async (req, res, next) => {
   const { orderId } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(orderID)) {
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
     return res
       .status(400)
       .json({ success: false, message: "Invalid Order ID format!" });
