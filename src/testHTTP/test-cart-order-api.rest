@@ -87,11 +87,11 @@ Content-Type: application/json
 GET {{baseUrl}}/orders/all
 
 ### 9. Update order detail & change order status to Paid (Deducts product stock)
-PUT {{baseUrl}}/orders/{{realOrderId}}
+PUT {{baseUrl}}/orders/6a26c164e9382086d5f2c562
 Content-Type: application/json
 
 {
-  "status": "Paid",
+  "status": "Paid"
 }
 
 ### 10. Admin cancels order (Returns database stock to shelf because status was Paid)
