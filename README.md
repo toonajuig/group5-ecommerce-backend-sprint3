@@ -2,7 +2,7 @@
 
 REST API for the Group 5 e-commerce platform. Built with Express 5 and MongoDB
 (Mongoose), using JWT-in-cookie authentication. Serves the
-[frontend client](../group5-ecommerce-sprint2).
+[frontend client](https://github.com/toonajuig/group5-ecommerce-frontend-sprint2).
 
 ## Tech Stack
 
